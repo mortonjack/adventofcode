@@ -120,6 +120,8 @@ int main() {
         file.getline(line, 9);
         if (line[0] == '\0') {
             max.insert(food);
+            /* Note: This takes O(nlogn) time to do using the bubble up method.
+             * I should've used the bubble down method for linear time. */
             food = 0;
         } else {
             food += stoi((string)line, nullptr, 10);
