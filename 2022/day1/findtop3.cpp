@@ -116,23 +116,22 @@ int main() {
 
     char line[10]; // store current line
     file.getline(line, 9);
-    int food; // stores food carried by this elf
+    int food = 0; // stores food carried by this elf
     string thisLine;
     MaxHeap max; // stores all elf food amounts
 
     while (!file.eof()) {
         if (line[0] == '\0') {
-            max.insertWithoutSorting(food);
-            food = 0;
+            max.insertWithoutSorting(food); // Append value to array
+            food = 0; // Reset calorie count
         } else {
-            if (food > 100000) food = 0; // sometimes this glitches idk
-            thisLine.assign(line);
-            food += stoi(thisLine, nullptr, 10);
+            thisLine.assign(line); // Convert char array to string
+            food += stoi(thisLine, nullptr, 10); // Convert string to int
         }
-        file.getline(line, 9);
+        file.getline(line, 9); // Store next line in char array
     }
 
-    max.resort();
+    max.resort(); // Sort max heap
     
     cout << "The total calories carried by the top 3 elves is ";
     int a = max.pop();

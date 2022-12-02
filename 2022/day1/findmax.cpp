@@ -6,10 +6,6 @@ using std::string;
 using std::ifstream;
 using std::stoi;
 
-/* A max heap will cost O(n) space. I could just scan through
- * once only storing the maximum amount of food and looking
- * for some greater amount. I'm just doing this so I can practice
- * building a max heap from scratch. */
 class MaxHeap {
     private:
         int * array;
@@ -105,6 +101,12 @@ class MaxHeap {
                 bubbleUp(iParent);
             }
         }
+
+        void resort() {
+            for (int i = items; i > 0; i--) {
+                bubbleDown(i);
+            }
+        }
 };
 
 int main() {
@@ -113,21 +115,24 @@ int main() {
     file.open("input1.txt");
 
     char line[10]; // store current line
-    int food; // stores food carried by this elf
+    file.getline(line, 9);
+    int food = 0; // stores food carried by this elf
+    string thisLine;
     MaxHeap max; // stores all elf food amounts
 
     while (!file.eof()) {
-        file.getline(line, 9);
         if (line[0] == '\0') {
-            max.insert(food);
-            /* Note: This takes O(nlogn) time to do using the bubble up method.
-             * I should've used the bubble down method for linear time. */
-            food = 0;
+            max.insertWithoutSorting(food); // Append value to array
+            food = 0; // Reset calorie count
         } else {
-            food += stoi((string)line, nullptr, 10);
+            thisLine.assign(line); // Convert char array to string
+            food += stoi(thisLine, nullptr, 10); // Convert string to int
         }
+        file.getline(line, 9); // Store next line in char array
     }
 
+    max.resort(); // Sort max heap
+    
     cout << "The elf with the most food has " << max.look() << " calories.\n";
 
     // close file
