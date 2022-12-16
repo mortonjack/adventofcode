@@ -46,25 +46,10 @@ class Graph {
         }
 };
 
-string key(int my_node, int el_node, int my_time, int el_time, vector<bool> used) {
-    string k = to_string(my_node);
-    k.push_back('_');
-    k.append(to_string(el_node));
-    k.push_back('_');
-    k.append(to_string(my_time));
-    k.push_back('_');
-    k.append(to_string(el_time));
-    k.push_back('_');
-    for (int i = 0; i < (int)used.size(); i++) {
-        if (used[i]) k.push_back('1');
-        else k.push_back('0');
-    }
-    return k;
-}
-
+int global_max = 0;
 
 // Elephant time
-int dfs(int my_node, int el_node, int my_time, int el_time, vector<vector<int>>& adj, vector<int> weight, vector<bool> visited, unordered_map<string, int>& best) {
+int dfs(int my_node, int el_node, int my_time, int el_time, vector<vector<int>>& adj, vector<int> weight, vector<bool> visited, int max_score) {
     // First: is it possible for final score to beat current max?
     int theoretical = weight[el_node] * (el_time-1);
     theoretical = theoretical > 0 ? theoretical : 0;
@@ -78,7 +63,7 @@ int dfs(int my_node, int el_node, int my_time, int el_time, vector<vector<int>>&
             if (best > 0) theoretical += best;
         }
     }
-    if (theoretical < best[key(my_node, el_node, my_time, el_time, visited)]) return 0;
+    if (theoretical < max_score) return 0;
 
     // The elephant and I are gonna take turns :D
     if (my_time > el_time) {
@@ -90,17 +75,18 @@ int dfs(int my_node, int el_node, int my_time, int el_time, vector<vector<int>>&
             val = my_time * weight[my_node];
         }
         // Explore the rest of the nodes!
-        string my_key = key(my_node, el_node, 0, el_time, visited);
-        if (best.count(my_key) == 0) best[my_key] = dfs(my_node, el_node, 0, el_time, adj, weight, visited, best);
-        int max = best[my_key];
+        int max = dfs(my_node, el_node, 0, el_time, adj, weight, visited, 0);
         for (int i = 0; i < (int)visited.size(); i++) {
             if (!visited[i]) {
                 visited[i] = true;
-                string c_key = key(i, el_node, my_time - adj[my_node][i], el_time, visited);
-                if (best.count(c_key) == 0) best[c_key] = dfs(i, el_node, my_time-adj[my_node][i], el_time, adj, weight, visited, best);
-                max = max > best[c_key] ? max : best[c_key];
+                int path = dfs(i, el_node, my_time-adj[my_node][i], el_time, adj, weight, visited, max);
+                max = max > path ? max : path;
                 visited[i] = false;
             }
+        }
+        if (val + max > global_max) {
+            global_max = val + max;
+            cout << "New max " << global_max << endl;
         }
         return val + max;
     } else {
@@ -112,17 +98,18 @@ int dfs(int my_node, int el_node, int my_time, int el_time, vector<vector<int>>&
             val = el_time * weight[el_node];
         }
         // Explore the rest of the nodes!
-        string el_key = key(my_node, el_node, my_time, 0, visited);
-        if (best.count(el_key) == 0) best[el_key] = dfs(my_node, el_node, my_time, 0, adj, weight, visited, best);
-        int max = best[el_key];
+        int max = dfs(my_node, el_node, my_time, 0, adj, weight, visited, 0);
         for (int i = 0; i < (int)visited.size(); i++) {
             if (!visited[i]) {
                 visited[i] = true;
-                string c_key = key(my_node, i, my_time, el_time-adj[el_node][i], visited);
-                if (best.count(c_key) == 0) best[c_key] = dfs(my_node, i, my_time, el_time-adj[el_node][i], adj, weight, visited, best);
-                max = max > best[c_key] ? max : best[c_key];
+                int path = dfs(my_node, i, my_time, el_time-adj[el_node][i], adj, weight, visited, max);
+                max = max > path ? max : path;
                 visited[i] = false;
             }
+        }
+        if (val + max > global_max) {
+            global_max = val + max;
+            cout << "New max " << global_max << endl;
         }
         return val + max;
     }
@@ -130,7 +117,7 @@ int dfs(int my_node, int el_node, int my_time, int el_time, vector<vector<int>>&
 
 int main() {
     ifstream file;
-    file.open("sample_input.txt");
+    file.open("input.txt");
 
     char thisLine[MAX_LENGTH];
     string line;
@@ -245,11 +232,9 @@ int main() {
      * total value. can be brute force at first. Don't visit any node twice. */
     vector<int> w; // these names are confusing!!! oopsies!!!
     vector<bool> visited(count+1, false);
-    unordered_map<string, int> best;
     visited[0] = true;
     for (int i = 0; i < (int)weights.size(); i++) w.push_back(network.weight[weights[i]]);
-    best[key(0,0,26,26,visited)] = 0;
-    int release = dfs(0, 0, 26, 26, adj, w, visited, best);
+    int release = dfs(0, 0, 26, 26, adj, w, visited, 0);
     cout << endl << "The maximum pressure released is " << release << endl;
 
     file.close();
