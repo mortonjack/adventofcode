@@ -46,6 +46,29 @@ class Graph {
         }
 };
 
+int dfs(int node, int time, vector<vector<int>>& adj, vector<int> weight, vector<bool> visited) {
+    // Return if time is too low
+    if (time <= 1) return 0;
+    int val = 0;
+    // If this node isn't 0, open it
+    if (node != 0) {
+        time--;
+        val = time * weight[node];
+    }
+    // Explore the rest of the nodes!
+    int max = 0;
+    for (int i = 0; i < (int)visited.size(); i++) {
+        if (!visited[i]) {
+            visited[i] = true;
+            int path = dfs(i, time-adj[node][i], adj, weight, visited);
+            max = max > path ? max : path;
+            visited[i] = false;
+        }
+    }
+
+    return val + max;
+}
+
 int main() {
     ifstream file;
     file.open("input.txt");
@@ -157,6 +180,16 @@ int main() {
         }
         cout << endl;
     }
+
+    /* STEP 2: Starting at A, time = 30, each travel takes weight long, and opening a valve 
+     * takes 1 time, then adds weight*time to the total. Find the path which maximises this 
+     * total value. can be brute force at first. Don't visit any node twice. */
+    vector<int> w; // these names are confusing!!! oopsies!!!
+    vector<bool> visited(count+1, false);
+    visited[0] = true;
+    for (int i = 0; i < (int)weights.size(); i++) w.push_back(network.weight[weights[i]]);
+    int release = dfs(0, 30, adj, w, visited);
+    cout << endl << "The maximum pressure released is " << release << endl;
 
     file.close();
     return 0;
