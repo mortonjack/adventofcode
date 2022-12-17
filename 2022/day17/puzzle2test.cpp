@@ -15,9 +15,12 @@ string key(int i, int rock, int highest, vector<vector<char>>& cave) {
     e.push_back('_');
     e.append( to_string(rock) );
     e.push_back('_');
-    for (int j = highest; j > highest-1500 && j >= 0; j--) {
+    bool floor = false;
+    for (int j = highest; j >= 0 && !floor; j--) {
+        floor = true;
         for (int k = 0; k <(int) cave[j].size(); k++) {
             e.push_back(cave[j][k]);
+            if (cave[j][k] == '.') floor = false;
         }
     }
     return e;
@@ -47,11 +50,10 @@ int main() {
     bool falling = false;
     int resets = 0;
     /* Initialise cave to 2022*4 +1 tall, empty space */
-    vector<vector<char>> cave(101500, vector<char>(7, '.'));
+    vector<vector<char>> cave(100100, vector<char>(7, '.'));
     unordered_map<string, vector<long long>> cycle;
     int last_rest = 0;
     bool found_cycle = false;
-    long long at_last = 0;
 
     while (rest < 1000000000000) {
         if (rest % 1000000 == 0 && rest != last_rest) {
@@ -128,28 +130,35 @@ int main() {
              * Input key: characters from highest down to the first 'floor', i.e. 7 filled tiles in a row 
              * or y = 0. Also, prefixed with i_rock_. */ 
             /* i, rock, highest, cave */
-            if (!found_cycle) {
-                // Look for cycle or store cycle.
-                string k = key(i, rock, highest, cave);
-                if (cycle.count(k)) {
-                    // Cycle repeats
-                    cout << "Cycle found at " << rest << endl;
-                    cout << "Repeated cycle from " << cycle[k][0] << endl;
-                    cout << "Cycle length " << rest - cycle[k][1] << endl;
-                    long long per_cycle = (highest + (100000*resets)) - cycle[k][0];
-                    cout << "Height per cycle " << per_cycle << endl;
-                    long long in_cycle = 1000000000000 - rest;
-                    long long remainder = in_cycle % (rest-cycle[k][1]);
-                    in_cycle -= remainder;
-                    in_cycle /= rest-cycle[k][1];
-                    cout << "In cycle " << in_cycle << " rocks, making " << in_cycle*per_cycle << " height" << endl;
-                    at_last = in_cycle*per_cycle;
-                    cout << "Cycles remaining " << remainder << endl;
-                    rest = 1000000000000-remainder;
-                    found_cycle = true;
-                } else {
-                    // {highest + 100k thing, rest}
-                    cycle[k] = {highest + 100000*resets, rest};
+            bool open = true;
+            for (int j = y; j < (int)forms[rock].size() && !found_cycle; j++) {
+                open = false;
+                // Look for a floor at any point
+                for (int k = 0; k < 7; k++) {
+                    if (cave[j][k] != '.') open = true;
+                }
+                if (!open) {
+                    // Look for cycle or store cycle.
+                    string k = key(i, rock, highest, cave);
+                    cout << "Floor found at " << j+(100000*resets) << endl;
+                    if (cycle.count(k)) {
+                        // Cycle repeats
+                        cout << "Repeated cycle from " << cycle[k][0] << endl;
+                        cout << "Cycle length " << rest - cycle[k][1] << endl;
+                        long long per_cycle = (highest + (100000*resets)) - cycle[k][0];
+                        cout << "Height per cycle " << per_cycle << endl;
+                        long long in_cycle = 1000000000000 - cycle[k][1];
+                        long long remainder = in_cycle % (rest-cycle[k][1]);
+                        in_cycle -= remainder;
+                        cout << "In cycle " << in_cycle << " rocks, making " << in_cycle*per_cycle << " height" << endl;
+                        cout << "Cycles remaining " << remainder << endl;
+                        rest = 1000000000000-remainder;
+                        found_cycle = true;
+                    } else {
+                        // {highest + 100k thing, rest}
+                        cycle[k] = {highest + 100000*resets, rest};
+                    }
+                    break;
                 }
             }
         } else {
@@ -159,14 +168,14 @@ int main() {
         // RESET
         if (highest > 100000) {
             resets++;
-            vector<vector<char>> save(1500, vector<char>(7, '.'));
-            for (int j = 0; j < 1500; j++) {
+            vector<vector<char>> save(100, vector<char>(7, '.'));
+            for (int j = 0; j < 100; j++) {
                 for (int k = 0; k < 7; k++) {
                     save[j][k] = cave[100000+j][k];
                 }
             }
-            cave = vector<vector<char>>(101500, vector<char>(7, '.'));
-            for (int j = 0; j < 1500; j++) {
+            cave = vector<vector<char>>(100100, vector<char>(7, '.'));
+            for (int j = 0; j < 100; j++) {
                 for (int k = 0; k < 7; k++) {
                     cave[j][k] = save[j][k];
                 }
@@ -175,8 +184,6 @@ int main() {
         }
 
     }
-    cout << "Highest found: " << 1+highest+ (100000*resets) << endl;
-    cout << "Answer: " << at_last + 1+highest+(100000*resets) << endl;
 
     file.close();
     return 0;
