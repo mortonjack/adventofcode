@@ -103,11 +103,13 @@ int main() {
     file.getline(thisLine, MAX_LENGTH);
     line.assign(thisLine);
     vector<vector<int>> blueprints = {{-1}};
+    int count = 0;
     // Each blueprint vector contains a cost vector of the form
     // {ore_cost, clay_cost, obsidian_ore_cost, obsidian_clay_cost, geode_ore_cost, geode_obsidian_cost};
 
     // Read input
-    while (!file.eof()) {
+    while (!file.eof() && count < 3) {
+        count++;
         vector<int> cost(6, -1);
         int c = 0; /* cost index */
         for (int i = 25; c != 6; i++) {
@@ -135,15 +137,15 @@ int main() {
     // Calculate quality levels
     // Cost: Ore, Ore, Ore/Clay, Ore/Obsidian
     vector<int> quality_levels(blueprints.size(), 0);
-    int sum = 0;
+    int mult = 1;
     for (int i = 1; i < (int)quality_levels.size(); i++) {
         unordered_map<string, int> time;
-        quality_levels.at(i) = max_geodes(time, blueprints[i], 0, 1, 0, 0, 0, 0, 0, 0, 24, 0);
-        int q = i*quality_levels.at(i);
-        cout << "Quality level for blueprint " << i << " is " << q << endl;
-        sum += q;
+        quality_levels.at(i) = max_geodes(time, blueprints[i], 0, 1, 0, 0, 0, 0, 0, 0, 32, 0);
+        int q = quality_levels.at(i);
+        cout << "Geodes gathered from blueprint " << i << " is " << q << endl;
+        mult *= q;
     }
-    cout << "The sum of quality levels is " << sum << endl;
+    cout << "The multiple of possible geode collection is " << mult << endl;
 
     file.close();
     return 0;
