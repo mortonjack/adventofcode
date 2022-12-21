@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <vector>
+using std::vector;
 using std::cout; using std::endl;
 using std::string; using std::ifstream;
 
@@ -14,14 +16,12 @@ int main() {
     string line;
     file.getline(thisLine, MAX_LENGTH);
     line.assign(thisLine);
-    int length = line.length();
 
     while (!file.eof()) {
         
         // Prepare for next line
         file.getline(thisLine, MAX_LENGTH);
         line.assign(thisLine);
-        length = line.length();
     }
 
     file.close();
