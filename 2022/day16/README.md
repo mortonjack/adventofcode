@@ -10,3 +10,9 @@ working properly by having the elephant start "after" me, rather than taking it 
 The DFS search remains the same, but now when memoising the result, I only need to pay
 attention to the current node & time remaining, the visited nodes, and who's turn it is.
 The elephant and I no longer need to worry about where the other is at!
+
+# Update 2 - January 2022
+I got the time down to under 30 seconds (beating my goal of <1min!) by using an integer
+for the key, rather than a string, drastically improving hashmap lookup times. I got
+another 10 seconds off the time by realising I was making copies of a couple vectors
+in the dfs function rather than passing by reference :p

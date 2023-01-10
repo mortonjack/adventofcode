@@ -49,55 +49,45 @@ class Graph {
 };
 
 int global_max = 0;
-unordered_map<string, int> dp;
-
-string key(int node, int time, bool elephant, vector<bool>& visited) {
-    if (!elephant) time += 26;
-    string res = to_string(node);
-    res += '_';
-    res += to_string(time);
-    res += '_';
-    for (int i = 0; i < (int)visited.size(); i++) res += visited[i] ? '1' : '0';
+unordered_map<int, int> dp;
+// Using an int as a key, rather than a string, halves the search time
+int key(int node, int time, bool elephant, vector<bool>& visited) {
+    int digit = visited.size();
+    int res = elephant << digit;
+    res += (node*100) << (digit+1);
+    res += (time << (digit+1));
+    for (int i = 0; i < (int)visited.size(); i++) res += visited[i] << i;
     return res;
 }
 
 // Elephant time
-int dfs(int node, int time, bool elephant, vector<vector<int>>& adj, vector<int> weight, vector<bool> visited, int max_score) {
+int dfs(int node, int time, bool elephant, vector<vector<int>>& adj, vector<int>& weight, vector<bool>& visited, int max_score) {
     // Check if this has already been calculated
-    string k = key(node, time, elephant, visited);
+    auto k = key(node, time, elephant, visited);
     if (dp.count(k)) return dp[k];
-
-    // Backtrack if it's impossible to beat the current max - This shaves off 3 seconds. I'll take it!
-    int theoretical = weight[node] * (time-1);
-    for (int i = 0; i < (int)visited.size(); i++) {
-        if (!visited[i]) {
-            int best = weight[i] * (time-1-adj[node][i]);
-            if (!elephant) {
-                int best_el = weight[i] * (25-adj[0][i]);
-                best = best > best_el ? best : best_el;
-            }
-            if (best > 0) theoretical += best;
-        }
-    }
-    if (theoretical < max_score) return 0;
-
+    
+    // Return if out of time
+    if (time <= 1) return dp[k] = elephant ? 0 : dfs(0, 26, true, adj, weight, visited, max_score);
+    
     // Make move
-    if (time <= 1) return elephant ? 0 : dfs(0, 26, true, adj, weight, visited, max_score);
     int val = 0;
     if (node != 0) {
         time--;
         val = time * weight[node];
     }
+
     // Explore the rest of the nodes!
     int max = dfs(node, 0, elephant, adj, weight, visited, 0);
     for (int i = 0; i < (int)visited.size(); i++) {
-        if (!visited[i]) {
+        if (!visited[i] && time-adj[node][i] >= 1) {
             visited[i] = true;
             int path = dfs(i, time-adj[node][i], elephant, adj, weight, visited, max);
             max = max > path ? max : path;
             visited[i] = false;
         }
     }
+
+    // Output updated global max to show progress. Serves no real function.
     if (val + max > global_max) {
         global_max = val + max;
         cout << "New max " << global_max << endl;
@@ -141,15 +131,6 @@ int main() {
             network.insert_edge(key, adj);
         }
 
-        /* Print connections
-        EdgeNode* next = network.adj[key];
-        cout << key << ": ";
-        while (next != nullptr) {
-            cout << next->key << " ";
-            next = next->next;
-        }
-        cout << endl; */
-        
         // Prepare for next line
         file.getline(thisLine, MAX_LENGTH);
         line.assign(thisLine);
@@ -169,7 +150,7 @@ int main() {
         index[weights[i]] = i;
     }
 
-    /* STEP 1: Use Breadth-First-Search to discover each weighted node. */
+    /* STEP 1: Use brute-force Breadth First Search to discover each weighted node. */
     for (int i = 0; i < (int)weights.size(); i++) {
         root = weights[i];
         string node = root;
@@ -218,10 +199,10 @@ int main() {
         cout << '\n';
     }
 
-    /* STEP 2: Starting at A, time = 30, each travel takes weight long, and opening a valve 
-     * takes 1 time, then adds weight*time to the total. Find the path which maximises this 
-     * total value. can be brute force at first. Don't visit any node twice. */
-    vector<int> w; // these names are confusing!!! oopsies!!!
+    /* Find all possible paths myself & the elephant can take. Let the elephant go after me.
+     * Memoising the results only looks at the valves opened, time remaining, current node,
+     * and whether its the elephants turn. */
+    vector<int> w;
     vector<bool> visited(count+1, false);
     visited[0] = true;
     for (int i = 0; i < (int)weights.size(); i++) w.push_back(network.weight[weights[i]]);
