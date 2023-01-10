@@ -51,37 +51,37 @@ class Graph {
 int global_max = 0;
 unordered_map<int, int> dp;
 // Using an int as a key, rather than a string, halves the search time
-int key(int node, int time, bool elephant, vector<bool>& visited) {
+int key(int node, int mins, bool elephant, vector<bool>& visited) {
     int digit = visited.size();
     int res = elephant << digit;
     res += (node*100) << (digit+1);
-    res += (time << (digit+1));
+    res += (mins << (digit+1));
     for (int i = 0; i < (int)visited.size(); i++) res += visited[i] << i;
     return res;
 }
 
 // Elephant time
-int dfs(int node, int time, bool elephant, vector<vector<int>>& adj, vector<int>& weight, vector<bool>& visited, int max_score) {
+int dfs(int node, int mins, bool elephant, vector<vector<int>>& adj, vector<int>& weight, vector<bool>& visited, int max_score) {
     // Check if this has already been calculated
-    auto k = key(node, time, elephant, visited);
+    auto k = key(node, mins, elephant, visited);
     if (dp.count(k)) return dp[k];
     
     // Return if out of time
-    if (time <= 1) return dp[k] = elephant ? 0 : dfs(0, 26, true, adj, weight, visited, max_score);
+    if (mins <= 1) return dp[k] = elephant ? 0 : dfs(0, 26, true, adj, weight, visited, max_score);
     
     // Make move
     int val = 0;
     if (node != 0) {
-        time--;
-        val = time * weight[node];
+        mins--;
+        val = mins * weight[node];
     }
 
     // Explore the rest of the nodes!
     int max = dfs(node, 0, elephant, adj, weight, visited, 0);
     for (int i = 0; i < (int)visited.size(); i++) {
-        if (!visited[i] && time-adj[node][i] >= 1) {
+        if (!visited[i] && mins-adj[node][i] >= 1) {
             visited[i] = true;
-            int path = dfs(i, time-adj[node][i], elephant, adj, weight, visited, max);
+            int path = dfs(i, mins-adj[node][i], elephant, adj, weight, visited, max);
             max = max > path ? max : path;
             visited[i] = false;
         }
