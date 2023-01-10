@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <queue>
 #include <vector>
+#include <ctime>
+using std::time;
 using std::vector;
 using std::unordered_map; using std::queue;
 using std::cout; using std::endl;
@@ -47,75 +49,64 @@ class Graph {
 };
 
 int global_max = 0;
+unordered_map<string, int> dp;
+
+string key(int node, int time, bool elephant, vector<bool>& visited) {
+    if (!elephant) time += 26;
+    string res = to_string(node);
+    res += '_';
+    res += to_string(time);
+    res += '_';
+    for (int i = 0; i < (int)visited.size(); i++) res += visited[i] ? '1' : '0';
+    return res;
+}
 
 // Elephant time
-int dfs(int my_node, int el_node, int my_time, int el_time, vector<vector<int>>& adj, vector<int> weight, vector<bool> visited, int max_score) {
-    // First: is it possible for final score to beat current max?
-    int theoretical = weight[el_node] * (el_time-1);
-    theoretical = theoretical > 0 ? theoretical : 0;
-    int again = weight[my_node] * (my_time-1);
-    if (again > 0) theoretical += again;
+int dfs(int node, int time, bool elephant, vector<vector<int>>& adj, vector<int> weight, vector<bool> visited, int max_score) {
+    // Check if this has already been calculated
+    string k = key(node, time, elephant, visited);
+    if (dp.count(k)) return dp[k];
+
+    // Backtrack if it's impossible to beat the current max - This shaves off 3 seconds. I'll take it!
+    int theoretical = weight[node] * (time-1);
     for (int i = 0; i < (int)visited.size(); i++) {
         if (!visited[i]) {
-            int el_max = weight[i] * (el_time-1-adj[el_node][i]);
-            int my_max = weight[i] * (my_time-1-adj[my_node][i]);
-            int best = el_max > my_max ? el_max : my_max;
+            int best = weight[i] * (time-1-adj[node][i]);
+            if (!elephant) {
+                int best_el = weight[i] * (25-adj[0][i]);
+                best = best > best_el ? best : best_el;
+            }
             if (best > 0) theoretical += best;
         }
     }
     if (theoretical < max_score) return 0;
 
-    // The elephant and I are gonna take turns :D
-    if (my_time > el_time) {
-        // My turn
-        if (my_time <= 1) return 0;
-        int val = 0;
-        if (my_node != 0) {
-            my_time--;
-            val = my_time * weight[my_node];
-        }
-        // Explore the rest of the nodes!
-        int max = dfs(my_node, el_node, 0, el_time, adj, weight, visited, 0);
-        for (int i = 0; i < (int)visited.size(); i++) {
-            if (!visited[i]) {
-                visited[i] = true;
-                int path = dfs(i, el_node, my_time-adj[my_node][i], el_time, adj, weight, visited, max);
-                max = max > path ? max : path;
-                visited[i] = false;
-            }
-        }
-        if (val + max > global_max) {
-            global_max = val + max;
-            cout << "New max " << global_max << endl;
-        }
-        return val + max;
-    } else {
-        // Elephants turn
-        if (el_time <= 1) return 0;
-        int val = 0;
-        if (el_node != 0) {
-            el_time--;
-            val = el_time * weight[el_node];
-        }
-        // Explore the rest of the nodes!
-        int max = dfs(my_node, el_node, my_time, 0, adj, weight, visited, 0);
-        for (int i = 0; i < (int)visited.size(); i++) {
-            if (!visited[i]) {
-                visited[i] = true;
-                int path = dfs(my_node, i, my_time, el_time-adj[el_node][i], adj, weight, visited, max);
-                max = max > path ? max : path;
-                visited[i] = false;
-            }
-        }
-        if (val + max > global_max) {
-            global_max = val + max;
-            cout << "New max " << global_max << endl;
-        }
-        return val + max;
+    // Make move
+    if (time <= 1) return elephant ? 0 : dfs(0, 26, true, adj, weight, visited, max_score);
+    int val = 0;
+    if (node != 0) {
+        time--;
+        val = time * weight[node];
     }
+    // Explore the rest of the nodes!
+    int max = dfs(node, 0, elephant, adj, weight, visited, 0);
+    for (int i = 0; i < (int)visited.size(); i++) {
+        if (!visited[i]) {
+            visited[i] = true;
+            int path = dfs(i, time-adj[node][i], elephant, adj, weight, visited, max);
+            max = max > path ? max : path;
+            visited[i] = false;
+        }
+    }
+    if (val + max > global_max) {
+        global_max = val + max;
+        cout << "New max " << global_max << endl;
+    }
+    return dp[k] = val + max;
 }
 
 int main() {
+    time_t start_time = time(NULL);
     ifstream file;
     file.open("input.txt");
 
@@ -224,7 +215,7 @@ int main() {
             cout << adj[i][j] << " ";
             if (adj[i][j] < 10) cout << " ";
         }
-        cout << endl;
+        cout << '\n';
     }
 
     /* STEP 2: Starting at A, time = 30, each travel takes weight long, and opening a valve 
@@ -234,8 +225,10 @@ int main() {
     vector<bool> visited(count+1, false);
     visited[0] = true;
     for (int i = 0; i < (int)weights.size(); i++) w.push_back(network.weight[weights[i]]);
-    int release = dfs(0, 0, 26, 26, adj, w, visited, 0);
-    cout << endl << "The maximum pressure released is " << release << endl;
+    int release = dfs(0, 26, false, adj, w, visited, 0);
+    time_t end_time = time(NULL);
+    cout << "\nThe maximum pressure released is " << release << '\n';
+    cout << "Took " << end_time - start_time << " seconds to complete.\n";
 
     file.close();
     return 0;
