@@ -40,65 +40,41 @@ class Pair {
         }
 };
 
-void print_pair(Pair* a) {
-    if (a->integer) cout << a->val << ",";
-    else {
-        cout << "[";
-        for (int i = 0; i < (int)a->list.size(); i++) print_pair(a->list[i]);
-        cout << "],";
-    }
-}
-
 int compare(Pair* left, Pair* right) {
-    cout << "New comparison\n";
-    if (left == nullptr ) cout << "AAAAAAA\n";
     /* Returns true if sorted correctly */
 
     if (left->integer && right->integer) {
-        cout << "Both ints\n";
         /* Both integers */
         if (left->val > right->val) {
-            cout << "return -1, " << left->val << " > " << right->val << endl;
             return -1;
         }
         else if (left->val < right->val) {
-            cout << "return 1, " << left->val << " < " << right->val << endl;
             return 1;
         }
     } else if (!left->integer && !right->integer) {
-        cout << "Neither ints\n";
         /* Neither integers - compare each value of their lists */
         for (int i = 0; i < (int)left->list.size(); i++) {
             /* Return false if right runs out of items first */
             if (!(i < (int)right->list.size())) {
-                cout << "return -1 right runs out of items first\n";
                 return -1;
             }
             /* Return false if unsorted (recursion) */
-            cout << "Compare->\n";
             int c = compare(left->list[i], right->list[i]);
-            cout << "back\n";
             if (c != 0) return c;
         }
-        cout << "Outside of loop\n";
         /* Return 1 if right still has items */
         if (left->list.size() != right->list.size()) {
-            cout << "return 1 left runs out of items first\n";
             return 1;
         }
     } else if (left->integer) {
-        cout << "Left int\n";
         /* Only left integer */
         if (right->list.size() == 0) {
-            cout << "Return -1 right has no integers\n";
             return -1;
         }
         return compare(left, right->list[0]);
     } else {
-        cout << "Right int\n";
         /* Only right integer */
         if (left->list.size() == 0) {
-            cout << "Return 1 left has no integers\n";
             return 1;
         }
         /* Only 1 element in list */
@@ -192,16 +168,13 @@ int main() {
     }
 
     // Sort packets
-    cout << "Begin sort\n";
     sort(packets.begin(), packets.end(), base_compare);
 
     // Search for dividers
     int decoder = 1;
-    cout << "Decoder search\n";
     for (int i= 1; i <=(int) packets.size(); i++) {
         if (packets[i-1]->divider) {
             decoder *= i;
-            cout << "DECODER " << i << endl;
         }
     }
     cout << decoder << endl;

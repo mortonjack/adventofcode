@@ -41,26 +41,15 @@ class Pair {
         }
 };
 
-void print_pair(Pair* a) {
-    if (a->integer) cout << a->val << ",";
-    else {
-        cout << "[";
-        for (int i = 0; i < (int)a->list.size(); i++) print_pair(a->list[i]);
-        cout << "],";
-    }
-}
-
 int compare(Pair* left, Pair* right) {
     /* Returns true if sorted correctly */
 
     if (left->integer && right->integer) {
         /* Both integers */
         if (left->val > right->val) {
-            cout << "return -1, " << left->val << " > " << right->val << endl;
             return -1;
         }
         else if (left->val < right->val) {
-            cout << "return 1, " << left->val << " < " << right->val << endl;
             return 1;
         }
     } else if (!left->integer && !right->integer) {
@@ -68,7 +57,6 @@ int compare(Pair* left, Pair* right) {
         for (int i = 0; i < (int)left->list.size(); i++) {
             /* Return false if right runs out of items first */
             if (!(i < (int)right->list.size())) {
-                cout << "return -1 right runs out of items first\n";
                 return -1;
             }
             /* Return false if unsorted (recursion) */
@@ -77,20 +65,17 @@ int compare(Pair* left, Pair* right) {
         }
         /* Return 1 if right still has items */
         if (left->list.size() != right->list.size()) {
-            cout << "return 1 left runs out of items first\n";
             return 1;
         }
     } else if (left->integer) {
         /* Only left integer */
         if (right->list.size() == 0) {
-            cout << "Return -1 right has no integers\n";
             return -1;
         }
         return compare(left, right->list[0]);
     } else {
         /* Only right integer */
         if (left->list.size() == 0) {
-            cout << "Return 1 left has no integers\n";
             return 1;
         }
         /* Only 1 element in list */
@@ -159,15 +144,9 @@ int main() {
 
         // Compare pair
         if (current == right) {
-/*            print_pair(left);
-            cout << endl;
-            print_pair(right);
-            cout << endl;
-  */        int comparative = compare(left, right);
+            int comparative = compare(left, right);
             if (comparative != -1) {
-                if (comparative == 0) cout << "Left side ran out of items, no conflicts found\n";
                 sum += index;
-                cout << "Index " << index << " sorted, total sum " << sum << endl;
             }
         }
 
