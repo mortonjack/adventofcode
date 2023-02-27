@@ -1,25 +1,23 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <array>
+using std::array;
 using std::cout; using std::endl;
 using std::string; using std::ifstream;
 
 #define MAX_LENGTH 15 // max length of lines
 
-void convert(char line[MAX_LENGTH], int length, int bounds[4]) {
-    int i = 0; // index of string
+void convert(string& line, array<int, 4>& bounds) {
     int j = 0; // index of bounds
-    while (i != length) {
-        if (line[i] == '-' || line[i] == ',') {
-            j++;
-        } else {
+    bounds[0] = 0;
+    for (auto& c: line) {
+        if (c == '-' || c == ',') bounds[++j] = 0;
+        else {
             bounds[j] *= 10;
-            bounds[j] += (int) (line[i] - '0');
+            bounds[j] += (int) (c - '0');
         }
-
-        i++;
     }
-    return;
 }
 
 int main() {
@@ -30,21 +28,15 @@ int main() {
     string line;
     file.getline(thisLine, MAX_LENGTH);
     line.assign(thisLine);
-    int length = line.length();
 
     // Count contained pairs
     int count = 0;
     // Store numbers from input
-    int bounds[4];
+    array<int, 4> bounds = {0};
 
     while (!file.eof()) {
-        // Initialise bounds to 0
-        for (int i = 0; i < 4; i++) {
-            bounds[i] = 0;
-        }
-
         // Read numbers for this line
-        convert(thisLine, length, bounds);
+        convert(line, bounds);
 
         // Increase count
         if ((bounds[0] <= bounds[2] && bounds[1] >= bounds[3])
@@ -55,7 +47,6 @@ int main() {
         // Prepare for next line
         file.getline(thisLine, MAX_LENGTH);
         line.assign(thisLine);
-        length = line.length();
     }
 
     cout << "In " << count << " assignment pairs, one range fully contains the other" << endl;
