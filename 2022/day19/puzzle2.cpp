@@ -2,18 +2,10 @@
 #include <fstream>
 #include <vector>
 #include <array>
-#include <unordered_map>
 #include <algorithm>
-#include <cstdint>
 using namespace std;
 
 #define MAX_LENGTH 165 // max length of lines
-
-/*
-int dp_hits = 0;
-int dp_attempts = 0;
-int time_saved = 0;
-*/
 
 class State {
 public:
@@ -35,45 +27,16 @@ public:
         time--;
     }
 
-    int64_t key() {
-        int64_t k = time;
-        k <<= 5;
-        k += orebots;
-        k <<= 5;
-        k += claybots;
-        k <<= 5;
-        k += obbots;
-        k <<= 5;
-        k += geodebots;
-        k <<= 5;
-        k += ore;
-        k <<= 5;
-        k += clay;
-        k <<= 5;
-        k += ob;
-        return k;
-    }
-
     bool canBeat(int global_max) {
-        if (global_max > geodes + (geodebots*time) + ((time-1)*(time)/2)) {
-//            time_saved += time;
-            return false;
-        }
-        return true;
+        return global_max < geodes + (geodebots*time) + ((time-1)*(time)/2);
     }
 };
 
-int max_geodes(array<int, 7>& cost, State state, int global_max, unordered_map<int64_t, int>& dp) {
+int max_geodes(array<int, 7>& cost, State state, int global_max, bool can_ore, bool can_clay, bool can_ob, bool can_geode) 
+{
     state.produce();
     if (state.time == 0) return 0;
 
-    int64_t key = state.key();
-//    dp_attempts++;
-    if (dp.count(key)) {
-//        dp_hits++;
-        return dp[key];
-    }
-    
     // Backtrack early if making 1 geode robot/min won't reach the global max
     if (!state.canBeat(global_max)) return 0;
 
@@ -81,51 +44,54 @@ int max_geodes(array<int, 7>& cost, State state, int global_max, unordered_map<i
     bool unaffordable = false;
 
     // Make ore robot
-    if (state.ore >= cost[0] && state.orebots < cost[6]) {
+    if (can_ore && state.ore >= cost[0] && state.orebots < cost[6]) {
         State newstate = state;
         newstate.ore -= cost[0]+1;
         newstate.orebots++;
-        maximum = max(maximum, max_geodes(cost, newstate, global_max, dp));
+        maximum = max(maximum, max_geodes(cost, newstate, global_max, true, true, true, true));
         global_max = max(maximum, global_max);
+        can_ore = false;
     } else unaffordable = true;
 
     // Make clay robot
-    if (state.ore >= cost[1] && state.claybots < cost[3]) {
+    if (can_clay && state.ore >= cost[1] && state.claybots < cost[3]) {
         State newstate = state;
         newstate.ore -= cost[1];
         newstate.clay--;
         newstate.claybots++;
-        maximum = max(maximum, max_geodes(cost, newstate, global_max, dp));
+        maximum = max(maximum, max_geodes(cost, newstate, global_max, true, true, true, true));
         global_max = max(maximum, global_max);
+        can_clay = false;
     } else unaffordable = true;
 
     // Make obby robot
-    if (state.ore >= cost[2] && state.clay >= cost[3] && state.obbots < cost[5]) {
+    if (can_ob && state.ore >= cost[2] && state.clay >= cost[3] && state.obbots < cost[5]) {
         State newstate = state;
         newstate.ore -= cost[2];
         newstate.clay -= cost[3];
         newstate.ob--;
         newstate.obbots++;
-        maximum = max(maximum, max_geodes(cost, newstate, global_max, dp));
+        maximum = max(maximum, max_geodes(cost, newstate, global_max, true, true, true, true));
         global_max = max(maximum, global_max);
+        can_ob = false;
     } else if (state.claybots) unaffordable = true;
 
     // Make geode robot
-    if (state.ore >= cost[4] && state.ob >= cost[5]) {
+    if (can_geode && state.ore >= cost[4] && state.ob >= cost[5]) {
         State newstate = state;
         newstate.ore -= cost[4];
         newstate.ob -= cost[5];
         newstate.geodes--;
         newstate.geodebots++;
-        maximum = max(maximum, max_geodes(cost, newstate, global_max, dp));
+        maximum = max(maximum, max_geodes(cost, newstate, global_max, true, true, true, true));
         global_max = max(maximum, global_max);
+        can_geode = false;
     } else if (state.obbots) unaffordable = true;
 
     // Save up (ONLY if some robot couldn't be made)
-    if (unaffordable) maximum = max(maximum, max_geodes(cost, state, global_max, dp));
+    if (unaffordable) maximum = max(maximum, max_geodes(cost, state, global_max, can_ore, can_clay, can_ob, can_geode));
 
     maximum += state.geodebots;
-    dp[key] = maximum;
     return maximum;
 }
 
@@ -162,7 +128,7 @@ int main() {
         cout << "Ore: " << cost[0];
         cout << ", Clay: " << cost[1];
         cout << ", Obsidian: " << cost[2] << ", " << cost[3];
-        cout << ", Geode: " << cost[4] << ", " << cost[5] << endl;
+        cout << ", Geode: " << cost[4] << ", " << cost[5] << '\n';
 
         cost[6] = max(max(cost[0], cost[1]), max(cost[2], cost[4]));
 
@@ -181,19 +147,13 @@ int main() {
     int mult = 1;
     for (int i = 0; i < (int)quality_levels.size(); i++) {
         State state;
-        unordered_map<int64_t, int> dp;
-        quality_levels.at(i) = max_geodes(blueprints[i], state, 0, dp);
+        quality_levels.at(i) = max_geodes(blueprints[i], state, 0, true, true, true, true);
         int q = quality_levels.at(i);
-        cout << "Geodes gathered from blueprint " << i+1 << " is " << q << endl;
+        cout << "Geodes gathered from blueprint " << i+1 << " is " << q << '\n';
         mult *= q;
     }
-    cout << "The multiple of possible geode collection is " << mult << endl;
-/*    cout << "DP ATTEMPTS: " << dp_attempts << endl;
-    cout << "DP HITS: " << dp_hits << endl;
-    cout << (float)dp_hits * 100.0 / (float)dp_attempts << "%\n";
-    cout << "TIME SAVED: " << time_saved << endl;
-    cout << (float)time_saved * 100.0 / (float)dp_attempts << "%\n";
-*/
+    cout << "The multiple of possible geode collection is " << mult << '\n';
+
     file.close();
     return 0;
 }
