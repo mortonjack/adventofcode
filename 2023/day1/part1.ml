@@ -5,11 +5,11 @@ let first_digit str = String.find str ~f:(fun c -> Char.(c >= '0' && c <= '9'))
 
 let calibration str = 
   let digit1 = match first_digit str with
-  | None -> "0"
+  | None -> failwith "no digit found"
   | Some x -> String.of_char x
 in
   let digit2 = match first_digit (String.rev str) with
-  | None -> "0"
+  | None -> failwith "no digit found"
   | Some x -> String.of_char x
 in
   Int.of_string (digit1 ^ digit2)
