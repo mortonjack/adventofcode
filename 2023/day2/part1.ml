@@ -1,34 +1,44 @@
 open Base
 open Stdio
 
-type game = {
-  id : int;
+type cubes = {
   blue : int;
   red : int;
   green : int;
 }
+type game = {
+  id : int;
+  colours : cubes;
+}
+
+let no_cubes = { blue = 0; red = 0; green = 0 }
+
+let compare_cubes cubes round_cubes = { 
+  blue = max cubes.blue round_cubes.blue;
+  red = max cubes.red round_cubes.red;
+  green = max cubes.green round_cubes.green }
+
+let rec count colours cubes =
+  match colours with
+  | [] -> cubes
+  | hd :: tl -> 
+    let num = Int.of_string (String.strip hd ~drop:(fun c -> not (Char.is_digit c))) in
+    if String.is_suffix ~suffix:"blue" hd then count tl {cubes with blue = num}
+    else if String.is_suffix ~suffix:"red" hd then count tl {cubes with red = num}
+    else if String.is_suffix ~suffix:"green" hd then count tl {cubes with green = num}
+    else failwith "Invalid colour"
 
 let max_counts game_info = 
   let games = String.Search_pattern. (split_on (create "; ") game_info ) in
-  let rec get_counts games (blue, red, green) =
+  let rec get_counts games cubes =
     match games with
-    | [] -> (blue, red, green)
-    | hd :: tl -> 
-      let colours = String.Search_pattern. (split_on (create ", ") hd) in
-      let rec count colours (blue, red, green) =
-        match colours with
-        | [] -> (blue, red, green)
-        | hd :: tl -> 
-          let num = Int.of_string (String.strip hd ~drop:(fun c -> not (Char.is_digit c))) in
-          if String.is_suffix ~suffix:"blue" hd then count tl (num, red, green)
-          else if String.is_suffix ~suffix:"red" hd then count tl (blue, num, green)
-          else if String.is_suffix ~suffix:"green" hd then count tl (blue, red, num)
-          else failwith "Invalid colour" 
-        in
-      let (b, r, g) = count colours (0, 0, 0) in
-      get_counts tl ((if b > blue then b else blue), (if r > red then r else red), (if g > green then g else green))
+    | [] -> cubes
+    | round :: tl -> 
+      let colours = String.Search_pattern. (split_on (create ", ") round) in
+      let round_cubes = count colours no_cubes in
+      get_counts tl (compare_cubes cubes round_cubes)
     in
-  get_counts games (0, 0, 0)
+  get_counts games no_cubes
 
 let analyse_game input_line = 
   let split_str = String.Search_pattern. (split_on (create ": ") input_line ) in
@@ -36,19 +46,17 @@ let analyse_game input_line =
   | [] | [_] -> failwith "No game info"
   | _ :: _ :: _ :: _ -> failwith "Two game IDs in one line"
   | [game_id; game_info] -> let id = Int.of_string (String.strip game_id ~drop:(fun c -> not (Char.is_digit c))) in
-    let (blue, red, green) = max_counts game_info in
-    { id; blue; red; green }
+    let colours = max_counts game_info in
+    { id; colours }
 
-let valid game = 
-  if game.blue > 14 then false else
-    if game.red > 12 then false else 
-      if game.green > 13 then false else true
+let valid cubes = 
+  cubes.blue <= 14 && cubes.red <= 12 && cubes.green <= 13
 
 let rec sum_valid_games games count = 
   match games with 
   | [] -> count
   | hd :: tl -> 
-    if (valid hd) then sum_valid_games tl (count + hd.id)
+    if (valid hd.colours) then sum_valid_games tl (count + hd.id)
     else sum_valid_games tl count
 
 let () = 
