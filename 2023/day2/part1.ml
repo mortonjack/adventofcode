@@ -8,7 +8,7 @@ type game = {
   green : int;
 }
 
-let sum_counts game_info = 
+let max_counts game_info = 
   let games = String.Search_pattern. (split_on (create "; ") game_info ) in
   let rec get_counts games (blue, red, green) =
     match games with
@@ -36,7 +36,7 @@ let analyse_game input_line =
   | [] | [_] -> failwith "No game info"
   | _ :: _ :: _ :: _ -> failwith "Two game IDs in one line"
   | [game_id; game_info] -> let id = Int.of_string (String.strip game_id ~drop:(fun c -> not (Char.is_digit c))) in
-    let (blue, red, green) = sum_counts game_info in
+    let (blue, red, green) = max_counts game_info in
     { id; blue; red; green }
 
 let valid game = 
