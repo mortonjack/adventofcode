@@ -29,10 +29,28 @@ let winning_numbers points =
     | [winning_nums; chosen_nums] -> count_matching_numbers winning_nums chosen_nums
     )
 
+let rec add_to_count count num amount = 
+  if (num = 0) then count else 
+  match count with
+  | [] -> (1 + amount) :: (add_to_count [] (num-1) amount)
+  | hd :: tl -> (hd + amount) :: (add_to_count tl (num-1) amount)
+
+let rec count_cards list ~count =
+  match list with 
+  | [] -> 0
+  | hd :: tl -> 
+    let (num, count) = match count with 
+    | [] -> (1, [])
+    | [x] -> (x, [])
+    | hd :: tl -> (hd, tl)
+  in
+    let new_count = add_to_count count hd num in
+    num + count_cards tl ~count:new_count
+
 let () = 
 format_input (In_channel.input_lines stdin)
 |> winning_numbers 
-|> List.sum (module Int) ~f:(fun x -> Int.of_float (2. **. (Float.of_int (x-1))))
+|> count_cards ~count:[]
 |> Int.to_string
 |> Out_channel.print_endline;
 
