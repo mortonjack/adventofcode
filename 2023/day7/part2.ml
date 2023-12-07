@@ -9,21 +9,22 @@ type cards = {
 let hand_type card =
   let card_list = String.to_list card.hand 
   |> List.sort ~compare:Char.compare in
-  let (_, card_count) = List.fold card_list ~init:('X', []) 
-  ~f:(fun (prev, acc) card -> if Char.equal card prev then 
+  let (_, card_count, j_count) = List.fold card_list ~init:('X', [], 0) 
+  ~f:(fun (prev, acc, j_count) card -> if Char.equal card 'J' then (prev, acc, j_count+1) else
+    if Char.equal card prev then 
     match acc with 
-  | hd :: tl -> card, (hd+1) :: tl
+  | hd :: tl -> card, (hd+1) :: tl, j_count
   | _ -> failwith "matching non-existent card"
-  else (card, 1 :: acc)) in
+  else (card, 1 :: acc, j_count)) in
   match List.sort card_count ~compare:Int.compare with
   | [_] -> 6
-  | [_; n] -> if n = 4 then 5 else 4
-  | [_; _; n] -> if n = 3 then 3 else 2
+  | [_; n] -> if (n+j_count) = 4 then 5 else 4
+  | [_; _; n] -> if (n+j_count) = 3 then 3 else 2
   | [_; _; _; _] -> 1
-  | _ -> 0
+  | _ -> if j_count = 5 then 6 else 0
 
 let beats c1 c2 = 
-  let card_order = ['A'; 'K'; 'Q'; 'J'; 'T'; '9'; '8'; '7'; '6'; '5'; '4'; '3'; '2' ] in
+  let card_order = ['A'; 'K'; 'Q'; 'T'; '9'; '8'; '7'; '6'; '5'; '4'; '3'; '2'; 'J' ] in
   let (c1_rank,  _) = List.findi_exn card_order ~f:(fun _ c -> Char.equal c c1) in
   let (c2_rank,  _) = List.findi_exn card_order ~f:(fun _ c -> Char.equal c c2) in
   c1_rank < c2_rank
