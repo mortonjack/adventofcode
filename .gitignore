@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+# Ocaml Stuffs!
+*dune*
+*_build*
+*.DS_Store*
