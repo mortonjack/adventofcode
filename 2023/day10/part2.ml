@@ -3,6 +3,7 @@ open Stdio
 
 type node = Land | Horizontal | Vertical | NorthWest | NorthEast | SouthEast | SouthWest | Start
 type coord = { i: int; j: int }
+type inside = Inside | Outside | Up | Down
 
 let connects_left = function
 | Start | Horizontal | NorthWest | SouthWest -> true
@@ -66,6 +67,33 @@ module Graph = struct
   let visited t coord =
     t.visited.(coord.i).(coord.j)
 
+  let count_area t =
+    Array.foldi t.visited ~init:0 ~f:(fun i acc a -> let (count, _) =
+    Array.foldi a ~init:(0, Outside) ~f:(fun j (count, inside) node -> 
+      Out_channel.print_string (Int.to_string count);
+      if node then
+        match (at t {i; j}, inside) with 
+        | Vertical, Inside -> count, Outside
+        | Vertical, Outside -> count, Inside 
+        | NorthEast, Outside -> count, Up
+        | SouthEast, Outside -> count, Down
+        | SouthEast, Inside -> count, Up
+        | NorthEast, Inside -> count, Down
+        | NorthWest, Up | SouthWest, Down -> count, Outside
+        | NorthWest, Down | SouthWest, Up -> count, Inside
+        | Horizontal, x -> count, x
+        (* Only works on my input because start = horizontal *)
+        | Start, x -> count, x
+        | _ -> failwith "Unknown configuration!"
+      else if match inside with | Inside -> true | _ -> false then count+1, inside else count, inside)
+    in Out_channel.print_endline (" " ^ (Int.to_string (acc + count))); acc + count)
+
+  let display_graph t = 
+    Out_channel.print_endline "";
+    Array.iter t.visited ~f:(fun a ->
+    Array.iter a ~f:(fun b -> let c = if b then "X" else "." in Out_channel.print_string c);
+    Out_channel.print_endline "")
+
 end
 
 let surroundings graph coord = 
@@ -93,7 +121,10 @@ let find_furthest (graph, start) =
 in
   Graph.visit graph start;
   let (coord1, coord2) = surroundings graph start in
-  dfs coord1 coord2 1
+  let count = dfs coord1 coord2 1 in
+  let area = Graph.count_area graph in
+  Graph.display_graph graph;
+  (count, area)
 
 let format_input lines = 
   let graph = 
@@ -103,7 +134,7 @@ let format_input lines =
 in (graph, start)
 
 let () = 
-format_input (In_channel.input_lines stdin)
-|> find_furthest
-|> Int.to_string
-|> Out_channel.print_endline;
+let (ans1, ans2) = format_input (In_channel.input_lines stdin) |> find_furthest 
+in
+Out_channel.print_endline (Int.to_string ans1);
+Out_channel.print_endline (Int.to_string ans2)
