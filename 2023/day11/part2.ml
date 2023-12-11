@@ -17,13 +17,13 @@ let find_expanded_space space_map =
   let row_space = Array.fold space_map ~init:[] ~f:(fun acc line -> 
     match Array.find line ~f:is_galaxy with
     | Some _ -> acc @ [1]
-    | None -> acc @ [2])
+    | None -> acc @ [1000000])
   |> List.to_array in
   let col_space = 
     Array.fold space_map ~init:[] ~f:(fun acc line ->
     let line = Array.to_list line in
     let acc = match acc with
-    | [] -> List.map line ~f:(fun _ -> 2)
+    | [] -> List.map line ~f:(fun _ -> 1000000)
     | _ -> acc in
     List.zip_exn line acc
     |> List.map ~f:(fun (node, acc) -> if is_galaxy node then 1 else acc))
