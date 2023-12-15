@@ -5,6 +5,10 @@ type pattern = {
   rows : string list;
   cols : string list;
 }
+let string_diff s1 s2 = 
+  let s1 = String.to_list s1 in
+  let s2 = String.to_list s2 in
+  List.fold ~init:0 (List.zip_exn s1 s2) ~f:(fun acc (c1, c2) -> if Char.(c1 = c2) then acc else acc+1)
 
 let rows_to_cols rows = 
   List.fold rows ~init:(String.to_list (List.hd_exn rows) |> List.map ~f:(fun _ -> ""))
@@ -24,12 +28,13 @@ let format_input lines =
     let cols = rows_to_cols rows in
     {rows; cols})
 
-let rec reflection left right = 
+let rec reflection left right curr_diff = 
   match left, right with
-  | _, [] | [], _ -> Some (List.length left)
+  | _, [] | [], _ -> if curr_diff = 1 then Some (List.length left) else None
   | lhd :: ltl, rhd :: rtl ->
-    if String.equal lhd rhd then 
-      match reflection ltl rtl with
+    let str_diff = string_diff lhd rhd in
+    if str_diff + curr_diff <= 1 then 
+      match reflection ltl rtl (str_diff + curr_diff) with
       | Some x -> Some (x + 1)
       | None -> None
     else None
@@ -41,7 +46,7 @@ let rec try_reflect left right =
     let left = hd :: left in
     let right = tl in
     if List.is_empty right then None else
-    match reflection left right with
+    match reflection left right 0 with
     | Some _ as ans -> ans
     | None -> try_reflect left right
 
