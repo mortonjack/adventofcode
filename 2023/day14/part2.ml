@@ -3,6 +3,7 @@ open Stdio
 
 type rock = Rounded | Cube | Empty
 type direction = North | South | East | West
+
 let char_to_rock = function
 | '#' -> Cube
 | 'O' -> Rounded
@@ -65,28 +66,71 @@ let rotate rocks direction =
   | West -> rotate rocks ~rb:0 ~re:row_end ~cb:0 ~ce:col_end West
   | East -> rotate rocks ~rb:0 ~re:row_end ~cb:col_end ~ce:0 East
 
-let output rocks = Array.iter rocks ~f:(fun row -> Array.iter row ~f:(fun x -> 
+let to_string rocks = 
+  Array.map rocks ~f:(fun row -> Array.map row ~f:(fun x -> 
   match x with
-  | Cube -> printf "#"
-  | Rounded -> printf "O"
-  | Empty -> printf "."
-  ); print_endline ""); print_endline ""
+  | Cube -> "#"
+  | Rounded -> "O"
+  | Empty -> "."
+  ) |> Array.to_list |> String.concat) 
+  |> Array.to_list
+  |> String.concat ~sep:"\n"
 
 let cycle rocks = 
   rotate rocks North;
   rotate rocks West;
   rotate rocks South;
-  rotate rocks East;
-  output rocks
+  rotate rocks East
+
+let rec cycle_x_more_times rocks to_go =
+  if to_go = 0 then ()
+  else (
+    cycle rocks;
+    cycle_x_more_times rocks (to_go-1))
+let find_repeat rocks =
+  let dp = Hashtbl.create (module String) in
+
+  let is_repeat key =
+    Hashtbl.mem dp key
+  in
+
+  let stored_result_of key =
+    Hashtbl.find_exn dp key
+  in
+
+  let store key data =
+    Hashtbl.set dp ~key ~data
+  in
+
+  let rec cycle_until_repeat rocks count = 
+    let key = to_string rocks in
+    if is_repeat key then
+      let cycle_length = count - stored_result_of key in
+      let remaining = 1000000000 - count in
+      let to_go = remaining % cycle_length in
+      cycle_x_more_times rocks to_go
+    else (
+      store key count; 
+      cycle rocks; 
+      cycle_until_repeat rocks (count+1)
+    ) in
+
+  cycle_until_repeat rocks 0
+
+let sum_load rocks = 
+  let sum = ref 0 in
+  for c = 0 to Array.length rocks.(0) - 1 do
+    for r = 0 to Array.length rocks - 1 do
+      match rocks.(r).(c) with
+      | Rounded -> sum := !sum + (Array.length rocks.(0)) - r
+      | _ -> ()
+    done
+  done;
+  !sum
 
 let () =
 let rocks = In_channel.input_lines stdin |> format_input in
-cycle rocks;
-cycle rocks;
-cycle rocks;
-cycle rocks;
-cycle rocks;
-cycle rocks;
-cycle rocks;
-cycle rocks;
-cycle rocks
+find_repeat rocks;
+sum_load rocks
+|> Int.to_string
+|> Out_channel.print_endline
