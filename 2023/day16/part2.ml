@@ -105,10 +105,29 @@ let count_visited visited =
       || visited.right.(i).(j) 
       then acc+1 else acc))
 
+let start_from contraption coord ~dir =
+  let visited = make_visited contraption in
+  search contraption visited coord ~dir;
+  count_visited visited
+
+let starting_dirs contraption =
+  let row_end = Array.length contraption.(0) - 1 in
+  let col_end = Array.length contraption - 1 in
+  Array.foldi contraption ~init:[] ~f:(fun i acc _ ->
+    ({ r = i; c = 0 }, Right) :: ({ r = i; c = col_end }, Left) :: acc )
+  @
+  Array.foldi contraption.(0) ~init:[] ~f:(fun j acc _ ->
+    ({ r = 0; c = j }, Down) :: ({ r = row_end; c = j }, Up) :: acc)
+
+let rec find_max = function
+| [] -> 0
+| hd :: tl -> let rm = find_max tl in
+if hd > rm then hd else rm
+
 let () = 
-let contraption = In_channel.input_lines stdin |> format_input
-in let visited = make_visited contraption in
-search contraption visited { r = 0; c = 0 } ~dir:Right;
-count_visited visited
+let contraption = In_channel.input_lines stdin |> format_input in 
+List.map (starting_dirs contraption) ~f:(fun (coord, dir) -> 
+  start_from contraption coord ~dir)
+|> find_max
 |> Int.to_string
 |> Out_channel.print_endline
