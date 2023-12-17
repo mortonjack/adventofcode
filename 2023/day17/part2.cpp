@@ -43,7 +43,7 @@ int main() {
     auto pos = pq.top(); pq.pop();
     int heat_lost = pos[0], r = pos[1], c = pos[2], moves = pos[3], dir = pos[4];
     
-    if (r == map.size()-1 && c == map.front().size()-1) {
+    if (r == map.size()-1 && c == map.front().size()-1 && moves >= 4) {
       cout << heat_lost << endl;
       return 0;
     }
@@ -53,20 +53,20 @@ int main() {
     seen.insert(key); 
 
     // Straight
-    if (moves < 3) {
+    if (moves < 10) {
       int new_r = r + (dir < 2 ? (dir == 0 ? -1 : 1) : 0);
       int new_c = c + (dir > 1 ? (dir == 2 ? -1 : 1) : 0);
       push_if_valid(new_r, new_c, moves, dir, heat_lost, pq, map);
     }
 
     // Left/Right
-    if (dir < 2) {
+    if (moves >= 4 && dir < 2) {
       push_if_valid(r, c-1, 0, 2, heat_lost, pq, map);
       push_if_valid(r, c+1, 0, 3, heat_lost, pq, map);
     }
 
     // Up/Down
-    if (dir > 1) {
+    if (moves >= 4 && dir > 1) {
       push_if_valid(r-1, c, 0, 0, heat_lost, pq, map);
       push_if_valid(r+1, c, 0, 1, heat_lost, pq, map);
     }
