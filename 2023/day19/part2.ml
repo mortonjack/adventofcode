@@ -68,8 +68,6 @@ let format_input lines =
     |> String.split ~on:',' 
     |> process_workflow in
     Hashtbl.set workflow_tbl ~key ~data);
-  (* Hashtbl.set workflow_tbl ~key:"R" ~data:[`Default "R"];
-  Hashtbl.set workflow_tbl ~key:"A" ~data:[`Default "A"]; *)
   let inputs = List.drop inputs 1 in
   let inputs = List.map inputs ~f:(fun s ->
     match String.strip s ~drop:(fun c -> Char.(c = '}'))
