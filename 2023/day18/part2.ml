@@ -1,19 +1,33 @@
 open! Core
 open Stdio
 
+type inside = Inside of int | Outside | Up of int | Down of int
 type direction = Up | Down | Left | Right
+
 type instruction = {
   dir : direction;
   len : int;
-  col : int;
 }
-
 type coord = {
+  row: int;
+  col: int
+}
+type node = {
   row : int;
-  col : int
+  col : int;
+  dir : direction;
+  dir_from : direction
 }
 
-let next_coord ~coord ~instruction =
+let node_compare node1 node2 = 
+  if node1.col = node2.col then 0
+  else if node1.col < node2.col then -1 else 1
+
+let pos_or_neg = function
+| Up | Left -> -1
+| Down | Right -> 1
+
+let next_coord ~(coord : coord) ~(instruction : instruction) =
   match instruction.dir with
   | Up -> { coord with row = coord.row - instruction.len }
   | Down -> { coord with row = coord.row + instruction.len }
@@ -21,11 +35,11 @@ let next_coord ~coord ~instruction =
   | Right -> { coord with col = coord.col + instruction.len }
 
 let dir_of = function
-  | "U" -> Up
-  | "D" -> Down
-  | "L" -> Left
-  | "R" -> Right
-  | dir -> failwith ("Invalid direction: " ^ dir)
+  | '3' -> Up
+  | '1' -> Down
+  | '2' -> Left
+  | '0' -> Right
+  | _ -> failwith ("Invalid direction")
 
 let rec boundaries instructions (min_r, min_c, max_r, max_c) ~coord =
   match instructions with
@@ -39,28 +53,6 @@ let rec boundaries instructions (min_r, min_c, max_r, max_c) ~coord =
       max max_c coord.col
     )
 
-let start_to_end ~instruction ~coord ~map = 
-  let (inc_r, inc_c) = match instruction.dir with
-  | Up -> (-1, 0)
-  | Down -> (1, 0)
-  | Left -> (0, -1)
-  | Right -> (0, 1) in
-  let r = ref coord.row in
-  let c = ref coord.col in
-  for _ = 1 to instruction.len do
-    r := !r + inc_r;
-    c := !c + inc_c;
-    map.(!r).(!c) <- instruction.col;
-  done
-
-let rec fill_map instructions ~coord ~map = 
-  match instructions with
-  | [] -> ()
-  | instruction :: remaining -> 
-    start_to_end ~map ~coord ~instruction;
-    let coord = next_coord ~coord ~instruction in
-    fill_map remaining ~coord ~map
-
 let format_input = 
   List.map ~f:(fun line ->
     match 
@@ -68,55 +60,72 @@ let format_input =
       |> List.map ~f:(String.strip 
       ~drop:(fun c -> Char.(c = '(' || c = ')' || c = '#')))
     with
-    | [direction; length; colour] -> 
-      let dir = dir_of direction in
-      let len = Int.of_string length in
-      let col =  Int.Hex.of_string ("0x" ^ colour) in
-      {dir; len; col}
+    | [_; _; hex] -> 
+      let chars = String.to_list hex in
+      let colour = String.of_char_list (List.take chars 5) in
+      let dir = dir_of (List.last_exn chars) in
+      let len =  Int.Hex.of_string ("0x" ^ colour) in
+      {dir; len}
     | _ -> failwith "Invalid line length")
 
-let surrounding ~coord ~map =
-  [{coord with row = coord.row + 1}; {coord with row = coord.row - 1};
-   {coord with col = coord.col + 1}; {coord with col = coord.col - 1}]
-  |> List.filter ~f:(fun {row; col} ->
-    row >= 0 && row < Array.length map
-    && col >= 0 && col < Array.length map.(0)
-    && map.(row).(col) = -1)
-
-let rec dfs ~coords ~map ~count =
-  match coords with
-  | [] -> count
-  | coord :: remaining ->
-    if map.(coord.row).(coord.col) <> -1
-    then dfs ~coords:remaining ~map ~count
-    else (
-      map.(coord.row).(coord.col) <- (-2);
-      dfs ~coords:(coords @ surrounding ~coord ~map) ~map ~count:(count + 1)
+let rec map_instructions points (instructions : instruction list) r c dir_from = 
+  match instructions with
+  | [] -> ();
+  | instruction :: remaining ->
+      let first_new_node = {
+        row = r;
+        col = c;
+        dir = instruction.dir;
+        dir_from;
+      } in
+      points.(r) <- first_new_node :: points.(r);
+    let (new_r, new_c) = match instruction.dir with
+    | Up | Down as dir -> (
+      let multiplier = pos_or_neg dir in
+      for i = 1 to instruction.len - 1 do
+        let new_node = {
+          row = r + i * multiplier;
+          col = c;
+          dir;
+          dir_from = dir
+        } in
+        points.(r + i * multiplier) <- new_node :: points.(r + i * multiplier)
+      done;
+      (r + instruction.len * multiplier, c)
     )
+    | Left | Right as dir -> (
+      let multiplier = pos_or_neg dir in
+      (r, c + instruction.len * multiplier)
+    )
+    in
+    map_instructions points remaining new_r new_c instruction.dir
 
-let count_tiles map = 
-  let start_coords_row = 
-    Array.mapi map ~f:(fun i _ -> [{row = i; col = 0}; {row = i; col = Array.length map.(0) - 1}])
-    |> Array.to_list |> List.concat in
-  let start_coords_col =
-    Array.mapi map.(0) ~f:(fun j _ -> [{row = 0; col = j}; {row = Array.length map - 1; col = j}])
-    |> Array.to_list |> List.concat in
-  let coords = List.concat [start_coords_row; start_coords_col] in
-  let unfilled = dfs ~coords ~map ~count:0 in
-  Array.length map * Array.length map.(0) - unfilled
-
-let _output_map =
-  Array.iter ~f:(fun row -> 
-    Array.iter row ~f:(fun n -> let tile = if n = -1 then "." else "#" in
-    Out_channel.print_string tile); Out_channel.print_endline "")
+let rec count_tiles_in_row points ~inside ~running =
+  match points with
+  | [] -> running
+  | pt :: tl ->
+    match pt.dir, pt.dir_from, inside with
+    | Up, Up, Inside c | Down, Down, Inside c -> count_tiles_in_row tl ~inside:Outside ~running:(running + pt.col - c + 1)
+    | Up, Up, Outside | Down, Down, Outside -> count_tiles_in_row tl ~inside:(Inside pt.col) ~running
+    | (Right | Left), Up, Outside | Up, (Left | Right), Outside -> count_tiles_in_row tl ~inside:(Down pt.col) ~running
+    | (Right | Left), Down, Outside | Down, (Left | Right), Outside -> count_tiles_in_row tl ~inside:(Up pt.col) ~running
+    | (Right | Left), Down, Inside c | Down, (Left | Right), Inside c -> count_tiles_in_row tl ~inside:(Down c) ~running
+    | (Right | Left), Up, Inside c | Up, (Left | Right), Inside c -> count_tiles_in_row tl ~inside:(Up c) ~running
+    | Up, (Right | Left), Up c | Down, (Right | Left), Down c | (Right | Left), Up, Up c | (Right | Left), Down, Down c 
+      -> count_tiles_in_row tl ~inside:Outside ~running:(running + pt.col - c + 1)
+    | Up, (Right | Left), Down c | Down, (Right | Left), Up c | (Right | Left), Up, Down c | (Right | Left), Down, Up c
+    -> count_tiles_in_row  tl ~inside:(Inside c) ~running
+    | (Right | Left), _, (Down _ | Up _) -> failwith  "ending strip with non up/left"
+    | (Right | Left), (Right | Left), _ -> failwith "rightright/leftleft"
+    | (Up | Down), (Up | Down),  _ -> failwith "upup/downdown"
 
 let () = 
 let instructions = In_channel.input_lines stdin |> format_input in
-let (min_r, min_c, max_r, max_c) = 
+let (min_r, min_c, max_r, _max_c) = 
 boundaries instructions (0, 0, 0, 0) ~coord:{ row = 0; col = 0 } in
-let map = Array.init (max_r - min_r + 1) ~f:(fun _ -> 
-  Array.init (max_c - min_c + 1) ~f:(fun _ -> -1)) in
-fill_map instructions ~map ~coord:{ row = 0 - min_r; col = 0 - min_c};
-count_tiles map
+let points = Array.init (max_r - min_r + 1) ~f:(fun _ -> []) in
+map_instructions points instructions (-min_r) (-min_c) ((List.last_exn instructions).dir);
+let points = Array.map points ~f:(List.dedup_and_sort ~compare:node_compare) in
+Array.sum (module Int) ~f:(count_tiles_in_row ~inside:Outside ~running:0) points
 |> Int.to_string
 |> Out_channel.print_endline
