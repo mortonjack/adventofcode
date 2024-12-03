@@ -19,5 +19,14 @@ pub fn part1(input: &str) -> impl std::fmt::Display {
 }
 
 pub fn part2(input: &str) -> impl std::fmt::Display {
-    format!("Unimplemented. Input length: {}", input.len())
+    use std::collections::HashMap;
+    let (mut left, right) = parse(input);
+    left.sort_unstable();
+    let right: HashMap<u32, u32> = right.into_iter().fold(HashMap::new(), |mut acc, x| {
+        *acc.entry(x).or_insert(0) += 1;
+        acc
+    });
+    left.into_iter()
+        .map(|x| x * right.get(&x).copied().unwrap_or(0))
+        .sum::<u32>()
 }
