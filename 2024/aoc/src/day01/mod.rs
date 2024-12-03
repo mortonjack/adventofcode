@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 fn parse(input: &str) -> (Vec<u32>, Vec<u32>) {
     input
         .split('\n')
@@ -19,14 +21,10 @@ pub fn part1(input: &str) -> impl std::fmt::Display {
 }
 
 pub fn part2(input: &str) -> impl std::fmt::Display {
-    use std::collections::HashMap;
     let (mut left, right) = parse(input);
     left.sort_unstable();
-    let right: HashMap<u32, u32> = right.into_iter().fold(HashMap::new(), |mut acc, x| {
-        *acc.entry(x).or_insert(0) += 1;
-        acc
-    });
+    let right = right.into_iter().counts();
     left.into_iter()
-        .map(|x| x * right.get(&x).copied().unwrap_or(0))
-        .sum::<u32>()
+        .map(|x| x as usize * right.get(&x).copied().unwrap_or(0))
+        .sum::<usize>()
 }
