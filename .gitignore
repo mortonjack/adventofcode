@@ -35,3 +35,6 @@
 *dune*
 *_build*
 *.DS_Store*
+
+# Rust
+*target/
