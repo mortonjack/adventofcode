@@ -1,5 +1,9 @@
 fn read_input() -> String {
-    std::io::stdin().lines().map(|l| l.unwrap()).collect()
+    std::io::stdin()
+        .lines()
+        .map(|l| l.unwrap())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn main() {
