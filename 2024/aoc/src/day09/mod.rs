@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::num::NonZeroU32;
@@ -62,64 +61,65 @@ pub fn part1(input: &str) -> impl std::fmt::Display {
     checksum(&input)
 }
 
-// 12865833349546 too high
-pub fn part2(input: &str) -> impl std::fmt::Display {
-    let mut input = parse(input.as_bytes());
-    let mut queues: [BinaryHeap<Reverse<usize>>; 9] = Default::default();
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SparseBlock {
+    Free(u32),
+    Id(u32, u8),
+}
+
+fn checksum_p2(blocks: impl Iterator<Item = SparseBlock>) -> u64 {
+    blocks
+        .fold((0, 0), |(pos, sum), block| match block {
+            SparseBlock::Free(count) => (pos + count as u64, sum),
+            SparseBlock::Id(id, count) => (
+                pos + count as u64,
+                sum + (pos..pos + count as u64)
+                    .map(|pos| pos * id as u64)
+                    .sum::<u64>(),
+            ),
+        })
+        .1
+}
+
+fn parse_p2(input: &[u8]) -> Vec<SparseBlock> {
     input
         .iter()
         .copied()
         .enumerate()
-        .chunk_by(|&(_, block)| block == Block::Free)
-        .into_iter()
-        .filter(|&(group, _)| group)
-        .map(|(_, it)| it)
-        .for_each(|mut it| {
-            let idx = it.next().unwrap().0;
-            queues[it.count()].push(Reverse(idx));
-        });
-    let mut take_at_least = |space| {
-        let queue = queues[space..]
-            .iter()
-            .enumerate()
-            .filter(|(_, q)| !q.is_empty())
-            .map(|(i, q)| (i, q.peek().unwrap()))
-            .min_by_key(|&(_, pos)| pos)
-            .map(|(i, _)| i + space);
-        if let Some(queue_index) = queue {
-            if queue_index != space {
-                let Reverse(pos) = queues[queue_index].peek().copied().unwrap();
-                queues[queue_index - space - 1].push(Reverse(pos + space + 1));
+        .map(|(i, b)| match i % 2 == 0 {
+            true => SparseBlock::Id(i as u32 / 2, b - b'0'),
+            false => SparseBlock::Free(b as u32 - b'0' as u32),
+        })
+        .collect()
+}
+
+// slower than my heap impl but this one works
+pub fn part2(input: &str) -> impl std::fmt::Display {
+    let mut input = parse_p2(input.as_bytes());
+    input.reverse();
+    let mut i = 0;
+    while i < input.len() {
+        if let SparseBlock::Id(id, length) = input[i] {
+            input[i] = SparseBlock::Free(length as u32);
+            for j in (0..input.len()).rev() {
+                if let SparseBlock::Free(free_length) = input[j] {
+                    use std::cmp::Ordering;
+                    match free_length.cmp(&(length as u32)) {
+                        Ordering::Less => (),
+                        Ordering::Equal => {
+                            input[j] = SparseBlock::Id(id, length);
+                            break;
+                        }
+                        Ordering::Greater => {
+                            input.insert(j + 1, SparseBlock::Id(id, length));
+                            input[j] = SparseBlock::Free(free_length - length as u32);
+                            break;
+                        }
+                    };
+                }
             }
         }
-        queue.map(|q| queues[q].pop()).flatten()
-    };
-    let mut seen = false;
-    for i in (0..input.len()).rev() {
-        if input[i] == Block::Free {
-            seen = false;
-            continue;
-        } else if seen && input[i] == input[i + 1] {
-            continue;
-        }
-        seen = true;
-        let k = {
-            let mut k = i;
-            while k > 0 && input[k - 1] == input[i] {
-                k -= 1;
-            }
-            k
-        };
-        if let Some(Reverse(j)) = take_at_least(i - k) {
-            if j >= k {
-                break;
-            }
-            for offset in 0..=i - k {
-                input[j + offset] = input[k + offset];
-                input[k + offset] = Block::Free;
-            }
-        }
+        i += 1;
     }
-    println!("{input:?}");
-    checksum(&input)
+    checksum_p2(input.into_iter().rev())
 }
