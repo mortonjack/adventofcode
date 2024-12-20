@@ -9,62 +9,60 @@ fn parse(input: &str) -> Vec<Vec<u8>> {
 
 fn get_scores(grid: &[Vec<u8>]) -> Vec<Vec<HashSet<(usize, usize)>>> {
     let mut scores = vec![vec![HashSet::new(); grid[0].len()]; grid.len()];
-    for height in (0..10).rev() {
-        for i in 0..grid.len() {
-            for j in 0..grid[i].len() {
-                if grid[i][j] != height {
-                    continue;
-                }
-                if height == 9 {
-                    scores[i][j].insert((i, j));
-                    continue;
-                }
-                let mut add = |r: usize, c: usize| {
-                    if let Some(grid_height) =
-                        grid.get(r).map(|g: &Vec<u8>| g.get(c)).flatten().copied()
-                    {
-                        if grid_height == height + 1 {
-                            scores[i][j] = scores[i][j].union(&scores[r][c]).copied().collect();
-                        }
-                    }
-                };
-                add(i + 1, j);
-                add(i.wrapping_sub(1), j);
-                add(i, j + 1);
-                add(i, j.wrapping_sub(1));
-            }
+    let row_size = grid.len();
+    let col_size = grid[0].len();
+    for (height, i, j) in (0..10)
+        .rev()
+        .map(|height| (0..row_size).map(move |i| (0..col_size).map(move |j| (height, i, j))))
+        .flatten()
+        .flatten()
+        .filter(|&(height, i, j)| grid[i][j] == height)
+    {
+        if height == 9 {
+            scores[i][j].insert((i, j));
+            continue;
         }
+        let mut add = |r: usize, c: usize| {
+            if let Some(grid_height) = grid.get(r).map(|g: &Vec<u8>| g.get(c)).flatten().copied() {
+                if grid_height == height + 1 {
+                    scores[i][j] = scores[i][j].union(&scores[r][c]).copied().collect();
+                }
+            }
+        };
+        add(i + 1, j);
+        add(i.wrapping_sub(1), j);
+        add(i, j + 1);
+        add(i, j.wrapping_sub(1));
     }
     scores
 }
 
 fn get_ratings(grid: &[Vec<u8>]) -> Vec<Vec<usize>> {
     let mut scores = vec![vec![0; grid[0].len()]; grid.len()];
-    for height in (0..10).rev() {
-        for i in 0..grid.len() {
-            for j in 0..grid[i].len() {
-                if grid[i][j] != height {
-                    continue;
-                }
-                if height == 9 {
-                    scores[i][j] = 1;
-                    continue;
-                }
-                let mut add = |r: usize, c: usize| {
-                    if let Some(grid_height) =
-                        grid.get(r).map(|g: &Vec<u8>| g.get(c)).flatten().copied()
-                    {
-                        if grid_height == height + 1 {
-                            scores[i][j] += scores[r][c];
-                        }
-                    }
-                };
-                add(i + 1, j);
-                add(i.wrapping_sub(1), j);
-                add(i, j + 1);
-                add(i, j.wrapping_sub(1));
-            }
+    let row_size = grid.len();
+    let col_size = grid[0].len();
+    for (height, i, j) in (0..10)
+        .rev()
+        .map(|height| (0..row_size).map(move |i| (0..col_size).map(move |j| (height, i, j))))
+        .flatten()
+        .flatten()
+        .filter(|&(height, i, j)| grid[i][j] == height)
+    {
+        if height == 9 {
+            scores[i][j] = 1;
+            continue;
         }
+        let mut add = |r: usize, c: usize| {
+            if let Some(grid_height) = grid.get(r).map(|g: &Vec<u8>| g.get(c)).flatten().copied() {
+                if grid_height == height + 1 {
+                    scores[i][j] += scores[r][c];
+                }
+            }
+        };
+        add(i + 1, j);
+        add(i.wrapping_sub(1), j);
+        add(i, j + 1);
+        add(i, j.wrapping_sub(1));
     }
     scores
 }
