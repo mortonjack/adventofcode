@@ -38,3 +38,9 @@
 
 # Rust
 *target/
+
+# AoC
+*input*
+*input*.txt
+*example*
+*example*.txt
